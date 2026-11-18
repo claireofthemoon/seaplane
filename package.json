@@ -1,0 +1,11 @@
+{
+  "name": "seaplane",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open settings app for the ROLI Seaboard M / Seaboard Block, using Web MIDI",
+  "license": "ISC",
+  "scripts": {
+    "test": "node --test tests/protocol.test.js",
+    "serve": "python3 -m http.server 8000"
+  }
+}
