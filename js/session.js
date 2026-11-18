@@ -3,9 +3,9 @@
 //   serial request -> topology request -> endAPIMode + beginAPIMode -> ping loop
 // then asks each device for its full config ("factory sync").
 //
-// This file only reads. The one exception is entering/leaving API mode,
-// which is what ROLI Dashboard does on every connect and does not change
-// any stored setting.
+// Connecting only reads. Entering/leaving API mode is what ROLI Dashboard
+// does on every connect and doesn't change any stored setting. Settings are
+// only changed by an explicit setConfig() call.
 
 (function (root) {
   'use strict';
@@ -142,11 +142,11 @@
         if (this.pendingTopology) this._acceptTopology();
         break;
       case 'version':
-        this._device(m.index).version = m.version;
+        this._device(m.index).version = m.version.replace(/\u0000+$/, '');
         this._emit('device', this._device(m.index));
         break;
       case 'name':
-        this._device(m.index).name = m.name;
+        this._device(m.index).name = m.name.replace(/\u0000+$/, '');
         this._emit('device', this._device(m.index));
         break;
       case 'ack':
@@ -158,6 +158,7 @@
         var d = this._device(fromIndex);
         var entry = d.config[m.item] || {};
         entry.value = m.value;
+        delete entry.pending;
         if (m.type === 'configUpdate') { entry.min = m.min; entry.max = m.max; }
         entry.seenAt = Date.now();
         d.config[m.item] = entry;
@@ -199,12 +200,16 @@
       self._send(P.deviceCommand(dev.index, P.DeviceCommands.beginAPIMode), 'beginAPIMode');
     });
 
-    // 4. Keep-alive pings. The master is the device the computer is plugged into (index 0).
+    // 4. Keep-alive pings. The master is the device the computer is plugged into.
+    // Its topology index isn't always 0 (a Seaboard M reported 23), so match it by serial.
+    var masterSerial = this.serial && this.serial.serial;
+    var master = topo.devices.filter(function (d) { return d.serial === masterSerial; })[0] || topo.devices[0];
+    this.masterIndex = master.index;
     var lastPing = {};
     this.pingTimer = setInterval(function () {
       var now = Date.now();
       topo.devices.forEach(function (dev) {
-        var every = dev.index === 0 ? MASTER_PING_MS : DNA_PING_MS;
+        var every = dev.index === self.masterIndex ? MASTER_PING_MS : DNA_PING_MS;
         if (!lastPing[dev.index] || now - lastPing[dev.index] >= every) {
           lastPing[dev.index] = now;
           self._sendQuiet(P.deviceCommand(dev.index, P.DeviceCommands.ping));
@@ -254,6 +259,29 @@
       var count = Object.keys(self.devices[index].config).length;
       self._emit('status', count ? 'Connected. Read ' + count + ' settings.' : 'The keyboard did not send any settings back.');
     });
+  };
+
+  // Change one setting. The keyboard stores it itself, as it does for ROLI Dashboard.
+  BlocksSession.prototype.setConfig = function (index, item, value) {
+    this._send(P.configSet(index, item, value), 'set ' + item + ' = ' + value);
+    var d = this._device(index);
+    var entry = d.config[item] || {};
+    entry.pending = value;
+    d.config[item] = entry;
+  };
+
+  // Re-read everything, quietly, to confirm what the keyboard actually holds.
+  BlocksSession.prototype.refresh = function () {
+    var self = this;
+    Object.keys(this.devices).forEach(function (i) {
+      self._send(P.configRequestFactorySync(Number(i)), 'request all settings');
+    });
+  };
+
+  BlocksSession.prototype.primaryDevice = function () {
+    if (this.masterIndex != null && this.devices[this.masterIndex]) return this.devices[this.masterIndex];
+    var keys = Object.keys(this.devices);
+    return keys.length ? this.devices[keys[0]] : null;
   };
 
   BlocksSession.prototype.close = function () {

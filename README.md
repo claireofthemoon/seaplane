@@ -4,8 +4,12 @@ An open settings app for the ROLI Seaboard M (formerly Seaboard Block M) and oth
 ROLI BLOCKS devices. It runs in the browser and talks to the keyboard over MIDI, so it
 doesn't need ROLI's software or servers.
 
-**Status:** step 1, a read-only probe. It connects, reads every setting the keyboard
-reports, and makes a report. It does not change anything on the keyboard yet.
+**Status:** working settings screen (`index.html`), tested on a Seaboard M with firmware
+M1.4.3 for reading. `probe.html` is a read-only diagnostics page that produces a report.
+
+Changes are sent with the same `setConfig` message ROLI Dashboard uses, and the keyboard
+stores them itself. Seaplane remembers the values from when you connected, so
+"Undo all changes" puts them back, and you can download or restore a backup file.
 
 ## Running it
 
@@ -40,7 +44,7 @@ Disconnecting sends `endAPIMode`, which returns the keyboard to normal standalon
 - `js/config-items.js`: setting IDs, names and ranges, generated from ROLI's source by
   `tools/gen-config-items.py`
 - `tests/`: `npm test` runs the protocol tests; `tests/fake-seaboard.js` is a fake
-  Web MIDI device for browser testing
+  Web MIDI device, used by `tests/browser-smoke.js` (Playwright)
 
 Settings of interest for pitch: Piano Mode (17), Glide Rate (18), Glide Lock Enable (19),
 Glide Sensitivity (11), Pitch Bend Range (3).

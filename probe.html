@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seaplane probe</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --panel: #ffffff; --ink: #1d1d1f; --muted: #6b6b70; --line: #e3e1dc;
+    --accent: #0f6c7a; --accent-ink: #ffffff; --warn: #9a5b00; --ok: #2f7a3b; --mark: #fff3c4;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141416; --panel: #1d1d20; --ink: #ececef; --muted: #9a9aa2; --line: #2e2e33;
+      --accent: #4fb3c2; --accent-ink: #0b1b1e; --warn: #e2a64a; --ok: #6cc47b; --mark: #3a3420;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141416; --panel: #1d1d20; --ink: #ececef; --muted: #9a9aa2; --line: #2e2e33;
+    --accent: #4fb3c2; --accent-ink: #0b1b1e; --warn: #e2a64a; --ok: #6cc47b; --mark: #3a3420;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  p { margin: 0 0 12px; }
+  .lede { color: var(--muted); margin-bottom: 20px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  label { font-size: 13px; color: var(--muted); }
+  select, button { font: inherit; padding: 7px 12px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  select { min-width: 220px; max-width: 100%; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button:disabled { opacity: .5; }
+  #status { font-weight: 600; }
+  .muted { color: var(--muted); }
+  .warn { color: var(--warn); }
+  .ok { color: var(--ok); }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  td.num { font-family: var(--mono); }
+  tr.group td { font-weight: 600; padding-top: 14px; color: var(--muted); border-bottom: none; }
+  tr.pitch td { background: var(--mark); }
+  #log { font-family: var(--mono); font-size: 12px; max-height: 280px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+  details summary { cursor: pointer; font-weight: 600; }
+  textarea { width: 100%; min-height: 120px; font-family: var(--mono); font-size: 12px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 8px; }
+  ol { padding-left: 20px; margin: 0 0 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Seaplane probe</h1>
+  <p class="lede"><a href="./">← Back to Seaplane</a>. Reads every setting from a ROLI Seaboard M / Seaboard Block over MIDI. This page only reads. It does not change anything stored on the keyboard.</p>
+
+  <section class="panel" id="unsupported" hidden>
+    <h2 class="warn">This browser can't talk to MIDI devices</h2>
+    <p id="unsupported-detail">Open this page in Firefox or Chrome. Safari doesn't support Web MIDI.</p>
+  </section>
+
+  <section class="panel">
+    <h2>1. Connect</h2>
+    <ol class="muted">
+      <li>Plug the Seaboard in with USB-C and switch it on. Quit ROLI Dashboard or anything else that might be talking to it.</li>
+      <li>Click <b>Allow MIDI access</b>. Your browser will ask for permission to use MIDI devices, including "system exclusive" messages. Allow it.</li>
+      <li>Check the two ports below are the Seaboard, then click <b>Connect and read settings</b>.</li>
+    </ol>
+    <div class="row" style="margin-bottom:10px">
+      <button id="btn-access" class="primary">Allow MIDI access</button>
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <div><label for="sel-in">From keyboard (input)</label><br><select id="sel-in" disabled></select></div>
+      <div><label for="sel-out">To keyboard (output)</label><br><select id="sel-out" disabled></select></div>
+    </div>
+    <div class="row">
+      <button id="btn-connect" class="primary" disabled>Connect and read settings</button>
+      <button id="btn-reread" disabled>Read again</button>
+      <button id="btn-disconnect" disabled>Disconnect</button>
+    </div>
+    <p style="margin-top:12px"><span id="status" class="muted">Not connected.</span> <span id="playing" class="muted"></span></p>
+  </section>
+
+  <section class="panel" id="device-panel" hidden>
+    <h2>2. Keyboard</h2>
+    <dl id="device-info"></dl>
+  </section>
+
+  <section class="panel" id="config-panel" hidden>
+    <h2>3. Settings on the keyboard</h2>
+    <p class="muted">Highlighted rows are the pitch and glide settings. "Not sent" means the keyboard didn't report that setting, which usually means it doesn't use it.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Setting</th><th>Value</th><th>Device range</th><th>ROLI default</th></tr></thead>
+        <tbody id="config-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="report-panel" hidden>
+    <h2>4. Send this to Claude</h2>
+    <p class="muted">Copy the report and paste it into the chat. It includes the serial number, firmware version and every setting, plus the raw messages.</p>
+    <div class="row" style="margin-bottom:8px">
+      <button id="btn-copy" class="primary">Copy report</button>
+      <button id="btn-download">Download report</button>
+      <span id="copy-status" class="muted"></span>
+    </div>
+    <textarea id="report" readonly></textarea>
+  </section>
+
+  <section class="panel">
+    <details>
+      <summary>Message log</summary>
+      <pre id="log"></pre>
+    </details>
+  </section>
+</main>
+
+<script src="js/config-items.js"></script>
+<script src="js/blocks-protocol.js"></script>
+<script src="js/session.js"></script>
+<script>
+(function () {
+  'use strict';
+  var P = window.BlocksProtocol;
+  var ITEMS = window.CONFIG_ITEMS;
+  var ITEM_BY_ID = {};
+  ITEMS.forEach(function (c) { ITEM_BY_ID[c.id] = c; });
+  var PITCH_KEYS = { pianoMode: 1, glideLock: 1, glideLockEnable: 1, glideSensitivity: 1, pitchBendRange: 1, xTrackingMode: 1, keyPitchBendAmount: 1 };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var access = null, session = null, logLines = [], rawLog = [];
+
+  function setStatus(text, cls) {
+    $('status').textContent = text;
+    $('status').className = cls || '';
+  }
+
+  function log(entry) {
+    var line = (entry.dir === 'out' ? '→ ' : entry.dir === 'in' ? '← ' : '! ') + entry.label + '\n   ' + entry.hex;
+    logLines.push(line);
+    rawLog.push(entry);
+    if (logLines.length > 400) logLines.shift();
+    if (rawLog.length > 1000) rawLog.shift();
+    $('log').textContent = logLines.join('\n');
+  }
+
+  if (!navigator.requestMIDIAccess) {
+    $('unsupported').hidden = false;
+    $('btn-access').disabled = true;
+    return;
+  }
+
+  function fillPorts() {
+    var ins = [], outs = [];
+    access.inputs.forEach(function (p) { ins.push(p); });
+    access.outputs.forEach(function (p) { outs.push(p); });
+    function fill(sel, ports) {
+      var prev = sel.value;
+      sel.innerHTML = '';
+      ports.forEach(function (p) {
+        var o = document.createElement('option');
+        o.value = p.id; o.textContent = p.name + (p.manufacturer ? ' (' + p.manufacturer + ')' : '');
+        sel.appendChild(o);
+      });
+      var guess = ports.filter(function (p) { return /seaboard|block|roli/i.test(p.name + ' ' + p.manufacturer); })[0];
+      if (prev && ports.some(function (p) { return p.id === prev; })) sel.value = prev;
+      else if (guess) sel.value = guess.id;
+      sel.disabled = ports.length === 0;
+    }
+    fill($('sel-in'), ins);
+    fill($('sel-out'), outs);
+    $('btn-connect').disabled = !(ins.length && outs.length) || !!session;
+    if (!ins.length || !outs.length) setStatus('No MIDI ports found. Is the Seaboard plugged in and switched on?', 'warn');
+    else if (!session) setStatus('Ready to connect.', 'muted');
+  }
+
+  $('btn-access').addEventListener('click', function () {
+    setStatus('Waiting for permission…', 'muted');
+    navigator.requestMIDIAccess({ sysex: true }).then(function (a) {
+      access = a;
+      access.onstatechange = fillPorts;
+      $('btn-access').disabled = true;
+      $('btn-access').textContent = 'MIDI access allowed';
+      fillPorts();
+    }, function (err) {
+      var msg = (err && err.name === 'SecurityError')
+        ? 'Permission was refused. Reload the page and allow MIDI access, including system exclusive messages.'
+        : 'Could not get MIDI access: ' + (err && (err.message || err.name) || err);
+      if (location.protocol === 'file:') msg += ' If you opened this file straight from disk, try serving it from a local web server or the GitHub Pages link instead.';
+      setStatus(msg, 'warn');
+    });
+  });
+
+  function renderDevice(d) {
+    $('device-panel').hidden = false;
+    var rows = [
+      ['Type', d.kind || '—'],
+      ['Serial', d.serial || (session && session.serial && session.serial.serial) || '—'],
+      ['Firmware', d.version || '—'],
+      ['Name', d.name || '—'],
+      ['Battery', d.batteryLevel != null ? Math.round(d.batteryLevel / 31 * 100) + '%' + (d.batteryCharging ? ' (charging)' : '') : '—'],
+      ['Topology index', String(d.index)]
+    ];
+    if (session && session.serial) rows.push(['MAC', session.serial.mac]);
+    $('device-info').innerHTML = rows.map(function (r) {
+      return '<dt>' + r[0] + '</dt><dd>' + escapeHtml(r[1]) + '</dd>';
+    }).join('');
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
+  }
+
+  function describe(item, value) {
+    if (!item) return String(value);
+    if (item.type === 'boolean') return value ? 'On (' + value + ')' : 'Off (0)';
+    if (item.type === 'options' && item.options.length) {
+      // Only trust the label when ROLI's option list lines up exactly with the range.
+      if (item.options.length !== item.max - item.min + 1) return String(value);
+      var label = item.options[value - item.min];
+      return label ? label + ' (' + value + ')' : String(value);
+    }
+    if (item.type === 'colour') return '#' + ((value >>> 0).toString(16).padStart(8, '0'));
+    return String(value);
+  }
+
+  function renderConfig() {
+    var d = session && session.devices[0] ? session.devices[0] : (session && session.devices[Object.keys(session.devices)[0]]);
+    if (!d) return;
+    $('config-panel').hidden = false;
+    var seen = d.config;
+    var ids = ITEMS.map(function (c) { return c.id; });
+    Object.keys(seen).forEach(function (k) { if (ids.indexOf(Number(k)) < 0) ids.push(Number(k)); });
+    var groups = {};
+    var order = [];
+    ids.forEach(function (id) {
+      var item = ITEM_BY_ID[id];
+      var g = item ? (item.group || 'Littlefoot user settings') : 'Not in ROLI\'s list';
+      if (item && /^user\d+$/.test(item.key) && !seen[id]) return; // hide unused user slots
+      if (!groups[g]) { groups[g] = []; order.push(g); }
+      groups[g].push(id);
+    });
+    var html = '';
+    order.forEach(function (g) {
+      html += '<tr class="group"><td colspan="5">' + escapeHtml(g) + '</td></tr>';
+      groups[g].forEach(function (id) {
+        var item = ITEM_BY_ID[id];
+        var s = seen[id];
+        var cls = item && PITCH_KEYS[item.key] ? ' class="pitch"' : '';
+        html += '<tr' + cls + '><td class="num">' + id + '</td><td>' + escapeHtml(item ? (item.name || item.key) : 'Unknown') +
+          '</td><td class="num">' + (s ? escapeHtml(describe(item, s.value)) : '<span class="muted">Not sent</span>') +
+          '</td><td class="num">' + (s && s.min != null ? s.min + ' – ' + s.max : '') +
+          '</td><td class="num muted">' + (item ? escapeHtml(describe(item, item.default)) : '') + '</td></tr>';
+      });
+    });
+    $('config-body').innerHTML = html;
+    renderReport();
+  }
+
+  function renderReport() {
+    if (!session) return;
+    $('report-panel').hidden = false;
+    var devices = Object.keys(session.devices).map(function (k) {
+      var d = session.devices[k];
+      var config = {};
+      Object.keys(d.config).sort(function (a, b) { return a - b; }).forEach(function (id) {
+        var item = ITEM_BY_ID[id];
+        var c = d.config[id];
+        config[id] = { key: item ? item.key : null, value: c.value, min: c.min, max: c.max };
+      });
+      return { index: d.index, kind: d.kind, serial: d.serial, firmware: d.version, name: d.name, syncDone: d.syncDone, config: config };
+    });
+    var report = {
+      tool: 'seaplane-probe 0.1',
+      when: new Date().toISOString(),
+      browser: navigator.userAgent,
+      ports: { input: $('sel-in').selectedOptions[0] && $('sel-in').selectedOptions[0].textContent, output: $('sel-out').selectedOptions[0] && $('sel-out').selectedOptions[0].textContent },
+      serialReply: session.serial,
+      topology: session.topology || null,
+      devices: devices,
+      notesSeenWhileConnected: session.otherMidiCount,
+      sysexLog: rawLog.slice(-200)
+    };
+    $('report').value = JSON.stringify(report, null, 1);
+  }
+
+  $('btn-connect').addEventListener('click', function () {
+    var input = access.inputs.get($('sel-in').value);
+    var output = access.outputs.get($('sel-out').value);
+    if (!input || !output) return;
+    logLines = []; rawLog = [];
+    Promise.all([input.open(), output.open()]).then(function () {
+      session = new window.BlocksSession(input, output, {
+        log: log,
+        status: function (t) { setStatus(t, /No reply|did not/.test(t) ? 'warn' : 'muted'); },
+        failed: function () { $('btn-reread').disabled = true; },
+        serial: function () { var d = session.devices[0]; if (d) renderDevice(d); renderReport(); },
+        device: function (d) { renderDevice(d); renderReport(); },
+        config: renderConfig,
+        syncDone: function () { renderConfig(); setStatus('Connected. Read ' + Object.keys(session.devices[0] ? session.devices[0].config : {}).length + ' settings.', 'ok'); },
+        playing: function (n) { $('playing').textContent = '· ' + n + ' notes/expression messages received while connected'; },
+        deviceLog: function (e) { log({ dir: 'in', label: 'device log', hex: e.text }); }
+      });
+      session.start();
+      $('btn-connect').disabled = true;
+      $('btn-disconnect').disabled = false;
+      $('btn-reread').disabled = false;
+      $('sel-in').disabled = $('sel-out').disabled = true;
+    }, function (err) {
+      setStatus('Could not open the MIDI ports: ' + (err.message || err), 'warn');
+    });
+  });
+
+  $('btn-reread').addEventListener('click', function () {
+    if (session) { setStatus('Reading settings…', 'muted'); session.readAllConfig(); }
+  });
+
+  $('btn-disconnect').addEventListener('click', function () {
+    if (session) session.close();
+    session = null;
+    $('btn-disconnect').disabled = true;
+    $('btn-reread').disabled = true;
+    $('playing').textContent = '';
+    fillPorts();
+  });
+
+  window.addEventListener('beforeunload', function () { if (session) session.close(); });
+
+  $('btn-copy').addEventListener('click', function () {
+    var text = $('report').value;
+    var done = function () { $('copy-status').textContent = 'Copied.'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { $('report').select(); document.execCommand('copy'); done(); });
+    } else { $('report').select(); document.execCommand('copy'); done(); }
+  });
+
+  $('btn-download').addEventListener('click', function () {
+    var blob = new Blob([$('report').value], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'seaplane-report-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.json';
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+})();
+</script>
+</body>
+</html>
