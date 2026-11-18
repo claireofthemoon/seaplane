@@ -4,213 +4,176 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Seaplane</title>
-<style>
-  :root {
-    --bg: #f6f5f2; --panel: #ffffff; --ink: #1d1d1f; --muted: #6b6b70; --line: #e3e1dc;
-    --accent: #0f6c7a; --accent-ink: #ffffff; --warn: #9a5b00; --ok: #2f7a3b; --soft: #eef6f7;
-    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #141416; --panel: #1d1d20; --ink: #ececef; --muted: #9a9aa2; --line: #2e2e33;
-      --accent: #4fb3c2; --accent-ink: #0b1b1e; --warn: #e2a64a; --ok: #6cc47b; --soft: #1b2a2d;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #141416; --panel: #1d1d20; --ink: #ececef; --muted: #9a9aa2; --line: #2e2e33;
-    --accent: #4fb3c2; --accent-ink: #0b1b1e; --warn: #e2a64a; --ok: #6cc47b; --soft: #1b2a2d;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink);
-         font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 820px; margin: 0 auto; padding: 24px 16px 64px; }
-  header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-  h1 { font-size: 24px; margin: 0; letter-spacing: -.01em; }
-  h2 { font-size: 16px; margin: 0 0 4px; }
-  p { margin: 0 0 10px; }
-  a { color: var(--accent); }
-  .muted { color: var(--muted); }
-  .warn { color: var(--warn); }
-  .ok { color: var(--ok); }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-  .panel.feature { border-color: var(--accent); }
-  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  button, select, input[type=number] { font: inherit; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
-  button { cursor: pointer; }
-  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
-  button:disabled { opacity: .5; cursor: default; }
-  input[type=number] { width: 84px; font-family: var(--mono); }
-  input[type=range] { width: 100%; accent-color: var(--accent); }
-  #status { font-weight: 600; }
-  .device-line { font-size: 13px; color: var(--muted); margin-top: 8px; }
-
-  .setting { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; padding: 12px 0; border-top: 1px solid var(--line); align-items: center; }
-  .setting:first-of-type { border-top: none; }
-  .setting .name { font-weight: 600; }
-  .setting .help { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin: 0; }
-  .setting .control { display: flex; align-items: center; gap: 10px; justify-self: end; }
-  .setting .slider { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; }
-  .setting .slider output { font-family: var(--mono); min-width: 3ch; text-align: right; }
-  .setting .state { font-size: 12px; min-width: 64px; text-align: right; }
-  .setting.changed .name::after { content: " • changed"; font-weight: 400; font-size: 12px; color: var(--accent); }
-
-  .switch { position: relative; width: 46px; height: 26px; flex: none; }
-  .switch input { opacity: 0; width: 100%; height: 100%; margin: 0; position: absolute; cursor: pointer; z-index: 1; }
-  .switch span { position: absolute; inset: 0; border-radius: 13px; background: var(--line); transition: background .15s; }
-  .switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
-  .switch input:checked + span { background: var(--accent); }
-  .switch input:checked + span::after { transform: translateX(20px); }
-  .switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-  .note { background: var(--soft); border-radius: 8px; padding: 10px 12px; font-size: 14px; margin: 8px 0 4px; }
-  details > summary { cursor: pointer; font-weight: 600; font-size: 16px; }
-  details[open] > summary { margin-bottom: 4px; }
-  .ports { margin-top: 10px; }
-  .ports label { font-size: 13px; color: var(--muted); display: block; }
-  .ports select { min-width: 220px; max-width: 100%; }
-</style>
+<meta name="description" content="Open control panel for the ROLI Seaboard M / Seaboard Block, over Web MIDI.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/seaplane.css">
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="knobFace" cx="40%" cy="32%" r="75%">
+      <stop offset="0" stop-color="#2a2c3a"/>
+      <stop offset=".55" stop-color="#14151d"/>
+      <stop offset="1" stop-color="#08090d"/>
+    </radialGradient>
+  </defs>
+</svg>
+
 <main>
-  <header>
-    <h1>Seaplane</h1>
-    <span class="muted">Open settings for the ROLI Seaboard M · <a href="probe.html">diagnostics</a></span>
-  </header>
-
-  <section class="panel" id="unsupported" hidden>
-    <h2 class="warn">This browser can't talk to MIDI devices</h2>
-    <p>Open Seaplane in Firefox or Chrome. Safari doesn't support Web MIDI.</p>
-  </section>
-
-  <section class="panel">
-    <div class="row">
-      <button id="btn-connect" class="primary">Connect to Seaboard</button>
-      <button id="btn-disconnect" disabled>Disconnect</button>
-      <span id="status" class="muted">Plug in the Seaboard, switch it on, and click Connect.</span>
+  <div class="topbar">
+    <div class="wordmark">
+      <h1>SEAPLANE</h1>
+      <span>Seaboard control surface</span>
     </div>
-    <div id="device-line" class="device-line" hidden></div>
-    <details class="ports" id="ports">
-      <summary style="font-size:13px;font-weight:400" class="muted">MIDI ports</summary>
-      <div class="row" style="margin-top:6px">
-        <div><label for="sel-in">From keyboard</label><select id="sel-in"></select></div>
-        <div><label for="sel-out">To keyboard</label><select id="sel-out"></select></div>
-      </div>
-    </details>
+    <div class="lcd status-lcd" id="status-lcd" role="status"><span class="led" id="status-led"></span><span class="msg" id="status">No signal</span></div>
+    <button class="power" id="btn-power" aria-pressed="false"><span class="led" id="power-led"></span><span id="power-label">Connect</span></button>
+  </div>
+  <div class="device-strip" id="device-strip" hidden></div>
+
+  <section class="module wide unsupported" id="unsupported" hidden>
+    <header><h2>No MIDI</h2></header>
+    <p>This browser can't talk to MIDI devices. Open Seaplane in Firefox or Chrome. Safari doesn't support Web MIDI.</p>
   </section>
 
-  <div id="settings" hidden>
-    <section class="panel feature">
-      <h2>Pitch</h2>
-      <p class="muted">Changes are sent straight to the keyboard and stored on it, just like ROLI Dashboard.</p>
-      <div id="group-pitch"></div>
-    </section>
-    <div id="groups"></div>
+  <div class="idle" id="idle"><strong>Standing by</strong>Plug in the Seaboard by USB-C or pair it over Bluetooth,<br>switch it on, then press Connect.</div>
 
-    <section class="panel">
-      <h2>Backup and undo</h2>
-      <p class="muted">Seaplane remembers the settings the keyboard had when you connected.</p>
-      <div class="row">
-        <button id="btn-undo" disabled>Undo all changes since connecting</button>
-        <button id="btn-backup">Download backup</button>
-        <label class="row" style="gap:6px"><button id="btn-restore-pick">Restore from backup…</button><input type="file" id="file-restore" accept=".json,application/json" hidden></label>
-        <span id="backup-status" class="muted"></span>
+  <div class="rack" id="rack" hidden>
+    <section class="module pitch span5" data-module="pitch"><header><h2>Pitch</h2><small>glide · bend</small></header></section>
+    <section class="module touch span7" data-module="touch"><header><h2>Touch</h2><small>5D sensitivity</small></header></section>
+    <section class="module midi wide" data-module="midi"><header><h2>MIDI</h2><small>channels · mpe</small></header></section>
+    <section class="module notes span4" data-module="notes"><header><h2>Notes</h2><small>range · key</small></header></section>
+    <section class="module system span8" data-module="system"><header><h2>System</h2><small>device · memory</small></header>
+      <div class="controls" data-row="system"></div>
+      <div class="controls">
+        <div class="sublabel">Memory</div>
+        <div class="memory-row" style="width:100%">
+          <button class="hw-btn" id="btn-undo" disabled>Revert to start</button>
+          <button class="hw-btn" id="btn-backup">Save to file</button>
+          <button class="hw-btn" id="btn-restore">Load from file</button>
+          <input type="file" id="file-restore" accept=".json,application/json" hidden>
+          <div class="lcd" id="memory-lcd">Ready</div>
+        </div>
       </div>
     </section>
   </div>
+
+  <p class="hint">Drag knobs up or down · Shift for fine · Scroll or use arrow keys · Double-click to reset to factory<br><a href="probe.html">Diagnostics</a> · <a href="https://github.com/claireofthemoon/seaplane">Source</a></p>
 </main>
+
+<div class="tooltip" id="tooltip" role="tooltip"></div>
 
 <script src="js/config-items.js"></script>
 <script src="js/blocks-protocol.js"></script>
 <script src="js/session.js"></script>
+<script src="js/controls.js"></script>
 <script>
 (function () {
   'use strict';
-  var ITEMS = window.CONFIG_ITEMS;
+  var SC = window.SynthControls;
   var ITEM = {};
-  ITEMS.forEach(function (c) { ITEM[c.key] = c; ITEM[c.id] = c; });
+  window.CONFIG_ITEMS.forEach(function (c) { ITEM[c.key] = c; ITEM[c.id] = c; });
 
-  // Plain-language text for the settings people actually touch. Anything the
-  // keyboard reports that isn't listed here still appears, under its ROLI name.
-  var PITCH = [
-    { key: 'pianoMode', name: 'Piano mode',
-      help: 'Turns sideways pitch glide off, so every note stays at its exact pitch like a piano. Probably the "snapped" setting.' },
-    { key: 'glideLockEnable', name: 'Glide lock',
-      help: 'Pulls the pitch back to the note you’re on, at the speed set by Glide rate. Another candidate for "snapped".' },
-    { key: 'glideLock', name: 'Glide rate', help: 'How quickly Glide lock pulls the pitch back. Only matters when Glide lock is on.' },
-    { key: 'glideSensitivity', name: 'Glide sensitivity', help: 'How far a sideways wiggle bends the pitch. 0 means no glide at all.' },
-    { key: 'pitchBendRange', name: 'Pitch bend range', help: 'Semitones for a full bend. Match this in your synth (48 is standard for MPE).' },
-    { key: 'xTrackingMode', name: 'Glide tracking', help: 'Which note a glide applies to when you hold several. 1 is the factory setting.' }
-  ];
-  var GROUPS = [
-    { title: 'Touch sensitivity', keys: [
-      ['velocitySensitivity', 'Strike sensitivity'], ['pressureSensitivity', 'Press sensitivity'],
-      ['slideSensitivity', 'Slide sensitivity'], ['liftSensitivity', 'Lift sensitivity'],
-      ['fixedVelocity', 'Fixed velocity'], ['fixedVelocityValue', 'Fixed velocity value'],
-      ['velocityMin', 'Strike minimum'], ['velocityMax', 'Strike maximum'],
-      ['pressMin', 'Press minimum'], ['pressMax', 'Press maximum'],
-      ['liftMin', 'Lift minimum'], ['liftMax', 'Lift maximum']] },
-    { title: 'Notes and keys', keys: [
-      ['octave', 'Octave'], ['transpose', 'Transpose'], ['autoTransposeToKey', 'Auto-transpose to key'],
-      ['key', 'Key'], ['scale', 'Scale'], ['chord', 'Chord'], ['mode', 'Mode']] },
-    { title: 'MIDI', keys: [
-      ['midiUseMPE', 'MIDI mode'], ['MPEZone', 'MPE zone'], ['midiChannelRange', 'Number of MIDI channels'],
-      ['midiStartChannel', 'Start channel'], ['midiEndChannel', 'End channel'],
-      ['slideCC', 'Slide CC number'], ['slideMode', 'Slide mode'],
-      ['yTrackingMode', 'Slide tracking'], ['zTrackingMode', 'Pressure tracking'],
-      ['keyPitchBendAmount', 'Key pitch bend amount'],
-      ['midiPortForwarding', 'MIDI port forwarding'], ['midiPortThrottling', 'MIDI port throttling']] },
-    { title: 'Other', keys: [['modeButtonAction', 'Side button action'], ['volume', 'Volume'], ['brightness', 'Brightness'], ['tempo', 'Tempo']] }
-  ];
+  var NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  var signed = function (v) { return v > 0 ? '+' + v : String(v); };
+
+  // The panel layout. Each entry: [config key, label, kind, extra]. Rows are
+  // separated by { row: 'Sub-label' }. Settings the keyboard doesn't report
+  // are left out automatically.
+  var LAYOUT = {
+    pitch: [
+      ['pianoMode', 'Piano mode', 'toggle', { help: 'Turns off sideways pitch glide, so each note stays at its exact pitch.' }],
+      ['glideLockEnable', 'Glide lock', 'toggle', { help: 'Pulls the pitch back to the centre of the note at the glide rate.' }],
+      ['glideSensitivity', 'Glide', 'knob', { help: 'How much sideways movement bends the pitch.' }],
+      ['glideLock', 'Glide rate', 'knob', { help: 'How quickly glide lock returns the pitch to the note.' }],
+      ['pitchBendRange', 'Bend range', 'knob', { format: function (v) { return '±' + v; }, help: 'Semitones for a full bend. Set your synth to the same value (48 for MPE).' }],
+      ['xTrackingMode', 'Glide tracking', 'stepper', { help: 'Which held note a glide applies to.' }]
+    ],
+    touch: [
+      ['velocitySensitivity', 'Strike', 'knob', { help: 'How strongly striking a key sets velocity.' }],
+      ['pressureSensitivity', 'Press', 'knob', { help: 'How much pressing into a key changes pressure.' }],
+      ['slideSensitivity', 'Slide', 'knob', { help: 'How much moving up and down a key changes slide.' }],
+      ['liftSensitivity', 'Lift', 'knob', { help: 'How strongly lifting off sets release velocity.' }],
+      ['fixedVelocity', 'Fixed vel', 'toggle', { help: 'Sends the same velocity for every note.' }],
+      ['fixedVelocityValue', 'Fixed value', 'knob', { help: 'The velocity sent when Fixed vel is on.' }],
+      { row: 'Output ranges' },
+      ['velocityMin', 'Strike min', 'knob', { small: true }],
+      ['velocityMax', 'Strike max', 'knob', { small: true }],
+      ['pressMin', 'Press min', 'knob', { small: true }],
+      ['pressMax', 'Press max', 'knob', { small: true }],
+      ['liftMin', 'Lift min', 'knob', { small: true }],
+      ['liftMax', 'Lift max', 'knob', { small: true }]
+    ],
+    notes: [
+      ['octave', 'Octave', 'stepper', { format: signed }],
+      ['transpose', 'Transpose', 'stepper', { format: signed, help: 'Semitones.' }],
+      ['key', 'Key', 'stepper', { format: function (v) { return NOTE_NAMES[v] || v; } }],
+      ['scale', 'Scale', 'stepper'],
+      ['chord', 'Chord', 'stepper'],
+      ['mode', 'Mode', 'stepper'],
+      ['autoTransposeToKey', 'Auto transpose', 'toggle', { help: 'Transposes to the selected key.' }]
+    ],
+    midi: [
+      ['midiUseMPE', 'MIDI mode', 'segments'],
+      ['MPEZone', 'MPE zone', 'segments', { short: { 'Lower Zone': 'Lower', 'Upper Zone': 'Upper' } }],
+      { row: 'Channels' },
+      ['midiChannelRange', 'Channels', 'stepper'],
+      ['midiStartChannel', 'Start ch', 'stepper', { format: function (v) { return 'CH ' + v; } }],
+      ['midiEndChannel', 'End ch', 'stepper', { format: function (v) { return 'CH ' + v; } }],
+      ['keyPitchBendAmount', 'Key bend', 'stepper'],
+      { row: 'Slide and pressure' },
+      ['slideCC', 'Slide CC', 'stepper', { format: function (v) { return 'CC ' + v; } }],
+      ['slideMode', 'Slide mode', 'segments', { short: { 'Absolute': 'Abs', 'Relative Unipolar': 'Rel +', 'Relative Bipolar': 'Rel ±' } }],
+      ['yTrackingMode', 'Slide tracking', 'stepper'],
+      ['zTrackingMode', 'Pressure tracking', 'stepper'],
+      { row: 'Ports' },
+      ['midiPortForwarding', 'Forwarding', 'toggle', { help: 'Passes MIDI between the keyboard’s ports.' }],
+      ['midiPortThrottling', 'Throttling', 'segments', { short: { 'Note On/Off': 'Notes' } }]
+    ],
+    system: [
+      ['modeButtonAction', 'Side button', 'segments', { short: { 'Preset only': 'Preset', 'Preset and MIDI Mode': 'Preset + MIDI' } }],
+      ['volume', 'Volume', 'knob'],
+      ['brightness', 'Brightness', 'knob', { format: function (v) { return v + '%'; } }],
+      ['tempo', 'Tempo', 'stepper', { format: function (v) { return v + ' BPM'; } }]
+    ]
+  };
 
   var $ = function (id) { return document.getElementById(id); };
-  var access = null, session = null, device = null;
-  var original = null;      // { item: value } as first read
-  var rows = {};            // item id -> { el, render }
+  var access = null, session = null, device = null, original = null;
+  var controls = {};      // config id -> control
+  var sending = {};       // config id -> true while waiting for confirmation
   var refreshTimer = null;
 
-  function setStatus(text, cls) { $('status').textContent = text; $('status').className = cls || 'muted'; }
+  function status(text, mode) {
+    $('status').textContent = text;
+    $('status-lcd').classList.toggle('warn', mode === 'warn');
+    var led = $('status-led');
+    led.className = 'led' + (mode === 'ok' ? ' on' : mode === 'busy' ? ' on blink' : '');
+    led.style.setProperty('--c', mode === 'busy' ? 'var(--cyan)' : mode === 'warn' ? 'var(--warn)' : 'var(--lime)');
+  }
+  function memory(text) { $('memory-lcd').textContent = text; }
 
   if (!navigator.requestMIDIAccess) {
     $('unsupported').hidden = false;
-    $('btn-connect').disabled = true;
+    $('idle').hidden = true;
+    $('btn-power').disabled = true;
+    status('Web MIDI unavailable', 'warn');
     return;
   }
 
-  // ------------------------------------------------------------ ports
-
-  function fillPorts() {
-    var ins = [], outs = [];
-    access.inputs.forEach(function (p) { ins.push(p); });
-    access.outputs.forEach(function (p) { outs.push(p); });
-    [[$('sel-in'), ins], [$('sel-out'), outs]].forEach(function (pair) {
-      var sel = pair[0], ports = pair[1], prev = sel.value;
-      sel.innerHTML = '';
-      ports.forEach(function (p) {
-        var o = document.createElement('option');
-        o.value = p.id; o.textContent = p.name;
-        sel.appendChild(o);
-      });
-      var guess = ports.filter(function (p) { return /seaboard|block|roli/i.test(p.name + ' ' + (p.manufacturer || '')); })[0];
-      if (prev && ports.some(function (p) { return p.id === prev; })) sel.value = prev;
-      else if (guess) sel.value = guess.id;
-    });
-    return ins.length && outs.length && /seaboard|block|roli/i.test(($('sel-in').selectedOptions[0] || {}).textContent || '');
-  }
-
-  // ------------------------------------------------------------ value helpers
+  // ------------------------------------------------------------ helpers
 
   function rangeOf(item) {
     var c = device && device.config[item.id];
     return { min: c && c.min != null ? c.min : item.min, max: c && c.max != null ? c.max : item.max };
   }
 
-  function optionLabels(item, r) {
+  // ROLI's option names don't always match the range the keyboard reports
+  // (glide tracking has 5 names for 1-4). Use names only when they fit exactly.
+  function optionNames(item, r) {
     var o = item.options || [];
-    if (!o.length) return null;
-    // ROLI's option lists don't always line up with the range the keyboard reports
-    // (e.g. glide tracking: 5 names for 1-4). Only use names when they fit exactly.
-    if (o.length === r.max - r.min + 1) return function (v) { return o[v - r.min]; };
-    return null;
+    return o.length && o.length === r.max - r.min + 1 ? function (v) { return o[v - r.min]; } : null;
   }
 
   function currentValue(id) {
@@ -219,167 +182,190 @@
     return c.pending != null ? c.pending : c.value;
   }
 
-  // ------------------------------------------------------------ building controls
+  // ------------------------------------------------------------ building the rack
 
-  function makeRow(item, name, help) {
-    var el = document.createElement('div');
-    el.className = 'setting';
+  function build() {
+    controls = {};
+    var placed = {};
+    Object.keys(LAYOUT).forEach(function (mod) {
+      var section = document.querySelector('[data-module="' + mod + '"]');
+      var target = mod === 'system' ? section.querySelector('[data-row="system"]') : null;
+      if (mod !== 'system') {
+        Array.prototype.slice.call(section.querySelectorAll('.controls')).forEach(function (n) { n.remove(); });
+      } else {
+        target.innerHTML = '';
+      }
+      var row = target || newRow(section, null);
+      var rowHasLabel = false, rowCount = 0, total = 0;
+      LAYOUT[mod].forEach(function (entry) {
+        if (entry.row) {
+          if (!rowCount && rowHasLabel) row.remove();
+          else if (!rowCount && !rowHasLabel && row !== target) row.remove();
+          row = newRow(section, entry.row);
+          rowHasLabel = true; rowCount = 0;
+          return;
+        }
+        var item = ITEM[entry[0]];
+        placed[item.id] = true;
+        if (!device.config[item.id]) return;
+        var ctl = makeControl(item, entry[1], entry[2], entry[3] || {});
+        row.appendChild(ctl.el);
+        rowCount++; total++;
+      });
+      if (!rowCount && row !== target) row.remove();
+      if (mod === 'system') {
+        // Anything else the keyboard reports gets a plain stepper here.
+        Object.keys(device.config).forEach(function (id) {
+          if (placed[id] || !ITEM[id]) return;
+          var it = ITEM[id];
+          target.appendChild(makeControl(it, it.name || it.key, 'stepper', {}).el);
+          total++;
+        });
+      } else {
+        section.hidden = total === 0;
+      }
+    });
+    $('rack').hidden = false;
+    $('idle').hidden = true;
+    updateChanged();
+  }
+
+  function newRow(section, label) {
+    var row = document.createElement('div');
+    row.className = 'controls';
+    if (label) {
+      var l = document.createElement('div');
+      l.className = 'sublabel';
+      l.textContent = label;
+      row.appendChild(l);
+    }
+    section.appendChild(row);
+    return row;
+  }
+
+  function makeControl(item, label, kind, extra) {
     var r = rangeOf(item);
-    var labels = optionLabels(item, r);
-    var html = '<div class="name">' + esc(name) + '</div><div class="control"><span class="state muted"></span>';
-    var kind;
-    if (item.type === 'boolean' || (r.min === 0 && r.max === 1 && !labels)) {
-      kind = 'switch';
-      html += '<label class="switch"><input type="checkbox" aria-label="' + esc(name) + '"><span></span></label></div>';
-    } else if (labels || r.max - r.min <= 24) {
-      kind = 'select';
-      html += '<select aria-label="' + esc(name) + '">';
-      for (var v = r.min; v <= r.max; v++) {
-        var text = labels && labels(v) ? labels(v) : (item.key === 'transpose' || item.key === 'octave') && v > 0 ? '+' + v : String(v);
-        html += '<option value="' + v + '">' + esc(text) + '</option>';
-      }
-      html += '</select></div>';
-    } else {
-      kind = 'slider';
-      html += '<input type="number" min="' + r.min + '" max="' + r.max + '" aria-label="' + esc(name) + '"></div>' +
-        '<div class="slider"><span class="muted">' + r.min + '</span><input type="range" min="' + r.min + '" max="' + r.max + '" aria-hidden="true" tabindex="-1"><span class="muted">' + r.max + '</span></div>';
+    var names = optionNames(item, r);
+    var spec = {
+      label: label, min: r.min, max: r.max, def: item.default, value: currentValue(item.id),
+      small: extra.small, help: extra.help,
+      format: extra.format || (names ? function (v) { return names(v) || String(v); } : String),
+      onCommit: function (v) { send(item.id, v); }
+    };
+    if (kind === 'segments' && names) {
+      spec.labels = function (v) { var n = names(v); return (extra.short && extra.short[n]) || n; };
+    } else if (kind === 'segments') {
+      kind = 'stepper';
     }
-    if (help) html += '<p class="help">' + esc(help) + '</p>';
-    el.innerHTML = html;
-
-    var state = el.querySelector('.state');
-    function send(v) {
-      v = Math.max(r.min, Math.min(r.max, Math.round(Number(v))));
-      if (isNaN(v) || v === currentValue(item.id)) return;
-      session.setConfig(device.index, item.id, v);
-      state.textContent = 'Sending…'; state.className = 'state muted';
-      scheduleRefresh();
-      render();
-    }
-
-    if (kind === 'switch') {
-      var cb = el.querySelector('input');
-      cb.addEventListener('change', function () { send(cb.checked ? 1 : 0); });
-    } else if (kind === 'select') {
-      var sel = el.querySelector('select');
-      sel.addEventListener('change', function () { send(sel.value); });
-    } else {
-      var num = el.querySelector('input[type=number]');
-      var rng = el.querySelector('input[type=range]');
-      rng.addEventListener('input', function () { num.value = rng.value; });
-      rng.addEventListener('change', function () { send(rng.value); });
-      num.addEventListener('change', function () { send(num.value); });
-    }
-
-    function render() {
-      var v = currentValue(item.id);
-      if (v === undefined) return;
-      if (kind === 'switch') el.querySelector('input').checked = !!v;
-      else if (kind === 'select') el.querySelector('select').value = String(v);
-      else {
-        if (document.activeElement !== el.querySelector('input[type=number]')) el.querySelector('input[type=number]').value = v;
-        el.querySelector('input[type=range]').value = v;
-      }
-      el.classList.toggle('changed', original && original[item.id] !== undefined && original[item.id] !== v);
-    }
-
-    function confirm() {
-      var c = device.config[item.id];
-      if (!c) return;
-      if (c.pending != null) { state.textContent = 'Not confirmed'; state.className = 'state warn'; }
-      else if (state.textContent === 'Sending…') { state.textContent = 'Saved'; state.className = 'state ok'; setTimeout(function () { if (state.textContent === 'Saved') state.textContent = ''; }, 2500); }
-    }
-
-    rows[item.id] = { el: el, render: render, confirm: confirm };
-    render();
-    return el;
+    if (kind === 'toggle' && !(r.min === 0 && r.max === 1)) kind = 'stepper';
+    var ctl = SC[kind](spec);
+    ctl.el.dataset.item = item.id;
+    controls[item.id] = ctl;
+    return ctl;
   }
 
-  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-
-  function buildSettings() {
-    rows = {};
-    var reported = device.config;
-    var used = {};
-    var pitch = $('group-pitch');
-    pitch.innerHTML = '';
-    PITCH.forEach(function (p) {
-      var item = ITEM[p.key];
-      used[item.id] = 1;
-      if (reported[item.id]) pitch.appendChild(makeRow(item, p.name, p.help));
-    });
-    var groupsEl = $('groups');
-    groupsEl.innerHTML = '';
-    var extra = Object.keys(reported).map(Number).filter(function (id) {
-      return !used[id] && !GROUPS.some(function (g) { return g.keys.some(function (k) { return ITEM[k[0]].id === id; }); });
-    });
-    var groups = GROUPS.concat(extra.length ? [{ title: 'More', keys: extra.map(function (id) {
-      var it = ITEM[id]; return it ? [it.key, it.name || it.key] : null; }).filter(Boolean) }] : []);
-    groups.forEach(function (g) {
-      var items = g.keys.filter(function (k) { return ITEM[k[0]] && reported[ITEM[k[0]].id]; });
-      if (!items.length) return;
-      var panel = document.createElement('details');
-      panel.className = 'panel';
-      panel.innerHTML = '<summary>' + esc(g.title) + ' <span class="muted" style="font-weight:400;font-size:13px">(' + items.length + ')</span></summary>';
-      items.forEach(function (k) { panel.appendChild(makeRow(ITEM[k[0]], k[1])); });
-      groupsEl.appendChild(panel);
-    });
-    $('settings').hidden = false;
-  }
-
-  function scheduleRefresh() {
+  function send(id, v) {
+    if (!session || !device) return;
+    if (v === currentValue(id)) return;
+    session.setConfig(device.index, Number(id), v);
+    sending[id] = true;
+    controls[id] && controls[id].state('sending');
     clearTimeout(refreshTimer);
     refreshTimer = setTimeout(function () { if (session) session.refresh(); }, 400);
+    updateChanged();
   }
 
-  function updateUndo() {
-    var changed = original && Object.keys(original).some(function (id) { return currentValue(id) !== original[id]; });
-    $('btn-undo').disabled = !changed;
+  function updateChanged() {
+    var any = false;
+    Object.keys(controls).forEach(function (id) {
+      var changed = original && original[id] !== undefined && currentValue(id) !== original[id];
+      controls[id].el.classList.toggle('changed', !!changed);
+      any = any || changed;
+    });
+    $('btn-undo').disabled = !any;
   }
 
-  // ------------------------------------------------------------ connect
+  // ------------------------------------------------------------ tooltips
 
-  $('btn-connect').addEventListener('click', function () {
+  var tip = $('tooltip'), tipTimer = null;
+  function showTip(el) {
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(function () {
+      tip.textContent = el.dataset.help;
+      var b = el.getBoundingClientRect();
+      tip.classList.add('show');
+      var w = tip.offsetWidth;
+      tip.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, b.left + b.width / 2 - w / 2)) + 'px';
+      tip.style.top = (b.bottom + 8) + 'px';
+    }, 450);
+  }
+  function hideTip() { clearTimeout(tipTimer); tip.classList.remove('show'); }
+  document.addEventListener('pointerover', function (e) {
+    var el = e.target.closest && e.target.closest('.ctl[data-help]');
+    if (el) showTip(el); else hideTip();
+  });
+  document.addEventListener('focusin', function (e) {
+    var el = e.target.closest && e.target.closest('.ctl[data-help]');
+    if (el) showTip(el); else hideTip();
+  });
+  document.addEventListener('pointerdown', hideTip);
+
+  // ------------------------------------------------------------ connecting
+
+  function findPorts() {
+    var pick = function (map) {
+      var ports = [];
+      map.forEach(function (p) { ports.push(p); });
+      return ports.filter(function (p) { return /seaboard/i.test(p.name); })[0] ||
+             ports.filter(function (p) { return /block|roli/i.test(p.name + ' ' + (p.manufacturer || '')); })[0];
+    };
+    return { input: pick(access.inputs), output: pick(access.outputs) };
+  }
+
+  $('btn-power').addEventListener('click', function () {
+    if (session) return disconnect('Disconnected');
     var go = function () {
-      var ok = fillPorts();
-      if (!ok) {
-        $('ports').open = true;
-        setStatus('Couldn’t find the Seaboard. Check it’s plugged in and on, or pick its ports below.', 'warn');
-        if (!$('sel-in').value) return;
+      var ports = findPorts();
+      if (!ports.input || !ports.output) {
+        status('Seaboard not found. Is it on?', 'warn');
+        return;
       }
-      connect();
+      connect(ports.input, ports.output);
     };
     if (access) return go();
-    setStatus('Waiting for MIDI permission…');
+    status('Waiting for MIDI permission', 'busy');
     navigator.requestMIDIAccess({ sysex: true }).then(function (a) {
       access = a;
-      access.onstatechange = function () { if (!session) fillPorts(); };
+      access.onstatechange = function (e) {
+        if (session && e.port && e.port.state === 'disconnected' && (e.port === session.input || e.port === session.output)) {
+          disconnect('Seaboard unplugged', true);
+        }
+      };
       go();
     }, function (err) {
-      setStatus(err && err.name === 'SecurityError'
-        ? 'MIDI permission was refused. Reload the page and allow it, including system exclusive messages.'
-        : 'Couldn’t get MIDI access: ' + (err && (err.message || err.name) || err), 'warn');
+      status(err && err.name === 'SecurityError' ? 'MIDI permission refused' : 'MIDI unavailable', 'warn');
     });
   });
 
-  function connect() {
-    var input = access.inputs.get($('sel-in').value);
-    var output = access.outputs.get($('sel-out').value);
-    if (!input || !output) return;
-    original = null; device = null;
+  function connect(input, output) {
+    status('Connecting', 'busy');
+    original = null; device = null; sending = {};
     Promise.all([input.open(), output.open()]).then(function () {
       var built = false;
       session = new window.BlocksSession(input, output, {
-        status: function (t) { if (!built || /No reply|did not/.test(t)) setStatus(t, /No reply|did not/.test(t) ? 'warn' : 'muted'); },
-        failed: function () { disconnect(true); },
-        device: function () { showDevice(); },
-        serial: function () { showDevice(); },
+        status: function (t) { if (!built && /No reply|did not/.test(t)) status('No reply from keyboard', 'warn'); },
+        failed: function () { disconnect('No reply from keyboard', true); },
+        device: showDevice,
+        serial: showDevice,
         config: function (e) {
-          if (!built) return;
-          if (e.device !== device) return;
-          var row = rows[e.item];
-          if (row) { row.render(); row.confirm(); }
-          updateUndo();
+          if (!built || e.device !== device) return;
+          var c = device.config[e.item];
+          var ctl = controls[e.item];
+          if (ctl && c) {
+            ctl.set(currentValue(e.item));
+            if (sending[e.item] && c.pending == null) { delete sending[e.item]; ctl.state('saved'); }
+          }
+          updateChanged();
         },
         syncDone: function (d) {
           if (d !== session.primaryDevice()) return;
@@ -388,90 +374,97 @@
             built = true;
             original = {};
             Object.keys(d.config).forEach(function (id) { original[id] = d.config[id].value; });
-            buildSettings();
-            setStatus('Connected', 'ok');
+            build();
+            status('Connected', 'ok');
+            $('btn-power').setAttribute('aria-pressed', 'true');
+            $('power-label').textContent = 'Disconnect';
+            $('power-led').className = 'led on';
           } else {
-            Object.keys(rows).forEach(function (id) { rows[id].render(); rows[id].confirm(); });
+            Object.keys(sending).forEach(function (id) {
+              if (device.config[id] && device.config[id].pending != null && controls[id]) controls[id].state('unconfirmed');
+            });
           }
-          updateUndo();
+          updateChanged();
         }
       });
       session.start();
-      $('btn-connect').disabled = true;
-      $('btn-disconnect').disabled = false;
-    }, function (err) { setStatus('Couldn’t open the MIDI ports: ' + (err.message || err), 'warn'); });
+    }, function () { status('Could not open MIDI ports', 'warn'); });
   }
 
   function showDevice() {
     var d = session && session.primaryDevice();
     if (!d) return;
-    var bits = [d.kind || 'BLOCKS device'];
-    if (d.version) bits.push('firmware ' + d.version);
-    if (d.batteryLevel != null) bits.push('battery ' + Math.round(d.batteryLevel / 31 * 100) + '%' + (d.batteryCharging ? ', charging' : ''));
-    if (d.serial) bits.push('serial ' + d.serial);
-    $('device-line').textContent = bits.join(' · ');
-    $('device-line').hidden = false;
+    var bits = [];
+    bits.push('<span><b>' + (d.kind === 'Seaboard Block / Seaboard M' ? 'Seaboard M' : (d.kind || 'BLOCKS device')) + '</b></span>');
+    if (d.version) bits.push('<span>Firmware <b>' + esc(d.version) + '</b></span>');
+    if (d.batteryLevel != null) bits.push('<span>Battery <b>' + Math.round(d.batteryLevel / 31 * 100) + '%' + (d.batteryCharging ? ' ↯' : '') + '</b></span>');
+    if (d.serial) bits.push('<span>Serial <b>' + esc(d.serial) + '</b></span>');
+    $('device-strip').innerHTML = bits.join('');
+    $('device-strip').hidden = false;
   }
 
-  function disconnect(failed) {
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function disconnect(message, warn) {
     if (session) session.close();
     session = null; device = null;
-    $('btn-connect').disabled = false;
-    $('btn-disconnect').disabled = true;
-    if (!failed) { $('settings').hidden = true; setStatus('Disconnected. Your changes are stored on the keyboard.'); }
+    $('rack').hidden = true;
+    $('idle').hidden = false;
+    $('device-strip').hidden = true;
+    $('btn-power').setAttribute('aria-pressed', 'false');
+    $('power-label').textContent = 'Connect';
+    $('power-led').className = 'led';
+    status(message, warn ? 'warn' : null);
   }
-  $('btn-disconnect').addEventListener('click', function () { disconnect(false); });
   window.addEventListener('beforeunload', function () { if (session) session.close(); });
 
-  // ------------------------------------------------------------ undo, backup, restore
+  // ------------------------------------------------------------ memory
 
   function applyValues(values) {
     var n = 0;
     Object.keys(values).forEach(function (id) {
-      if (!device.config[id]) return;
       var item = ITEM[id];
-      if (!item) return;
+      if (!item || !device.config[id]) return;
       var r = rangeOf(item);
       var v = Number(values[id]);
       if (isNaN(v) || v < r.min || v > r.max || v === currentValue(id)) return;
-      session.setConfig(device.index, Number(id), v);
+      send(id, v);
+      if (controls[id]) controls[id].set(v);
       n++;
     });
-    Object.keys(rows).forEach(function (id) { rows[id].render(); });
-    scheduleRefresh();
     return n;
   }
 
   $('btn-undo').addEventListener('click', function () {
     var n = applyValues(original);
-    $('backup-status').textContent = n ? 'Put back ' + n + ' setting' + (n === 1 ? '' : 's') + '.' : 'Nothing to undo.';
+    memory(n ? 'Reverted ' + n + ' setting' + (n === 1 ? '' : 's') : 'Nothing to revert');
   });
 
   $('btn-backup').addEventListener('click', function () {
-    var values = {};
-    Object.keys(device.config).forEach(function (id) { values[id] = currentValue(id); });
-    var data = { tool: 'seaplane', kind: device.kind, serial: device.serial, firmware: device.version, saved: new Date().toISOString(),
-      settings: Object.keys(values).reduce(function (o, id) { o[id] = { key: ITEM[id] ? ITEM[id].key : null, value: values[id] }; return o; }, {}) };
+    var settings = {};
+    Object.keys(device.config).forEach(function (id) { settings[id] = { key: ITEM[id] ? ITEM[id].key : null, value: currentValue(id) }; });
+    var data = { tool: 'seaplane', kind: device.kind, serial: device.serial, firmware: device.version, saved: new Date().toISOString(), settings: settings };
     var a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
     a.download = 'seaboard-settings-' + new Date().toISOString().slice(0, 10) + '.json';
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    memory('Saved ' + Object.keys(settings).length + ' settings to file');
   });
 
-  $('btn-restore-pick').addEventListener('click', function () { $('file-restore').click(); });
+  $('btn-restore').addEventListener('click', function () { $('file-restore').click(); });
   $('file-restore').addEventListener('change', function () {
     var f = this.files[0];
+    this.value = '';
     if (!f) return;
     f.text().then(function (t) {
       var data = JSON.parse(t);
-      if (!data || data.tool !== 'seaplane' || !data.settings) throw new Error('not a Seaplane backup');
+      if (!data || data.tool !== 'seaplane' || !data.settings) throw new Error('Not a Seaplane file');
       var values = {};
       Object.keys(data.settings).forEach(function (id) { values[id] = data.settings[id].value; });
       var n = applyValues(values);
-      $('backup-status').textContent = 'Restored ' + n + ' setting' + (n === 1 ? '' : 's') + ' from the backup.';
-    }).catch(function (e) { $('backup-status').textContent = 'Couldn’t read that file: ' + e.message; });
-    this.value = '';
+      memory(n ? 'Loaded ' + n + ' setting' + (n === 1 ? '' : 's') : 'File matches the keyboard');
+    }).catch(function (e) { memory(e.message || 'Could not read file'); });
   });
 })();
 </script>

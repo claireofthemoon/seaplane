@@ -4,12 +4,14 @@ An open settings app for the ROLI Seaboard M (formerly Seaboard Block M) and oth
 ROLI BLOCKS devices. It runs in the browser and talks to the keyboard over MIDI, so it
 doesn't need ROLI's software or servers.
 
-**Status:** working settings screen (`index.html`), tested on a Seaboard M with firmware
-M1.4.3 for reading. `probe.html` is a read-only diagnostics page that produces a report.
+**Status:** a working control panel (`index.html`) for every setting the keyboard reports,
+tested on a Seaboard M with firmware M1.4.3. `probe.html` is a read-only diagnostics page.
 
-Changes are sent with the same `setConfig` message ROLI Dashboard uses, and the keyboard
-stores them itself. Seaplane remembers the values from when you connected, so
-"Undo all changes" puts them back, and you can download or restore a backup file.
+Controls behave like hardware: drag knobs up or down (Shift for fine), scroll, or use the
+arrow keys, and double-click to return to the factory value. Each change is sent once, when
+you let go, with the same `setConfig` message ROLI Dashboard uses, and then read back from
+the keyboard to confirm it. "Revert to start" puts back the values from when you connected,
+and settings can be saved to and loaded from a file.
 
 ## Running it
 
@@ -41,6 +43,7 @@ Disconnecting sends `endAPIMode`, which returns the keyboard to normal standalon
 
 - `js/blocks-protocol.js`: bit packing, checksum, packet builders and decoder
 - `js/session.js`: the connection sequence
+- `js/controls.js`, `css/seaplane.css`: the knobs, switches, selectors and theme
 - `js/config-items.js`: setting IDs, names and ranges, generated from ROLI's source by
   `tools/gen-config-items.py`
 - `tests/`: `npm test` runs the protocol tests; `tests/fake-seaboard.js` is a fake

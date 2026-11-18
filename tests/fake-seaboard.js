@@ -16,8 +16,10 @@
     }, 5);
   }
   function raw(bytes) { setTimeout(function () { listeners.forEach(function (l) { l({ data: new Uint8Array(bytes) }); }); }, 5); }
-  var config = { 2: [1, 0, 2], 3: [48, 0, 96], 4: [0, -4, 5], 5: [0, -11, 11], 10: [127, 0, 127], 11: [102, 0, 127], 17: [0, 0, 1], 18: [0, 0, 127], 19: [0, 0, 1], 30: [1, 1, 4], 32: [1, 0, 5], 58: [0, 0, 1] };
+  var config = { // values reported by a real Seaboard M (firmware M1.4.3)
+    2: [1, 0, 2], 3: [48, 0, 96], 4: [0, -4, 5], 5: [0, -11, 11], 6: [74, 0, 127], 7: [0, 0, 2], 9: [15, 1, 15], 10: [127, 0, 127], 11: [102, 0, 127], 12: [127, 0, 127], 13: [127, 0, 127], 14: [127, 0, 127], 15: [0, 0, 1], 16: [127, 1, 127], 17: [0, 0, 1], 18: [0, 0, 127], 19: [0, 0, 1], 24: [0, 0, 14], 30: [1, 1, 4], 31: [1, 1, 4], 32: [1, 0, 5], 40: [0, 0, 1], 50: [83, 1, 127], 51: [127, 1, 127], 52: [0, 0, 127], 53: [127, 0, 127], 54: [0, 0, 127], 55: [127, 0, 127], 56: [0, 0, 1], 57: [0, 0, 3], 58: [0, 0, 1] };
   window.__config = config;
+  window.__sets = [];
   var input = {
     id: 'in1', name: 'Seaboard M Bluetooth', manufacturer: 'ROLI Ltd.',
     open: function () { return Promise.resolve(); },
@@ -54,6 +56,7 @@
           var item = r.read(8), val = r.read(32);
           if (val >= 2147483648) val -= 4294967296;
           if (config[item]) config[item][0] = val;
+          window.__sets.push([item, val]);
         } else if (c === 2) {
           var fields = [];
           Object.keys(config).forEach(function (id) {
